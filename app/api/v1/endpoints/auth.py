@@ -31,7 +31,9 @@ async def google_login(
     if not settings.GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
-    base_url = f"{request.url.scheme}://{request.url.netloc}"
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    host = request.headers.get("x-forwarded-host", request.url.netloc)
+    base_url = f"{scheme}://{host}"
     redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # Encode role and exam_code into the state parameter
@@ -63,7 +65,9 @@ async def google_callback(
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
-    base_url = f"{request.url.scheme}://{request.url.netloc}"
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    host = request.headers.get("x-forwarded-host", request.url.netloc)
+    base_url = f"{scheme}://{host}"
     redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # 1. Exchange code for access token and id_token
