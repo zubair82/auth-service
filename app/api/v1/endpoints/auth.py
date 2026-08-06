@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
@@ -21,6 +21,7 @@ router = APIRouter()
 
 @router.get("/google/login")
 async def google_login(
+    request: Request,
     role: UserRole = Query(...),
     exam_code: Optional[str] = Query(None)
 ):
@@ -30,7 +31,8 @@ async def google_login(
     if not settings.GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
-    redirect_uri = f"http://localhost:5001{settings.API_V1_STR}/auth/google/callback"
+    base_url = f"{request.url.scheme}://{request.url.netloc}"
+    redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # Encode role and exam_code into the state parameter
     state_data = {"role": role.value if role else UserRole.STUDENT.value, "exam_code": exam_code}
@@ -50,6 +52,7 @@ async def google_login(
 
 @router.get("/google/callback")
 async def google_callback(
+    request: Request,
     code: str,
     state: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
@@ -60,7 +63,8 @@ async def google_callback(
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
-    redirect_uri = f"http://localhost:5001{settings.API_V1_STR}/auth/google/callback"
+    base_url = f"{request.url.scheme}://{request.url.netloc}"
+    redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # 1. Exchange code for access token and id_token
     token_url = "https://oauth2.googleapis.com/token"
