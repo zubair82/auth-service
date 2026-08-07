@@ -49,7 +49,10 @@ except Exception:
 if "libsql" in DATABASE_URL or "https" in DATABASE_URL:
     connect_args: dict[str, Any] = {}
     if settings.TURSO_AUTH_TOKEN:
-        connect_args["auth_token"] = settings.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
+        clean_token = settings.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
+        if clean_token.lower().startswith("bearer "):
+            clean_token = clean_token[7:].strip()
+        connect_args["auth_token"] = clean_token
     
     sync_engine = create_engine(
         DATABASE_URL,
