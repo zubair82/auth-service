@@ -49,11 +49,6 @@ class Settings(BaseSettings):
                 sep = "&" if "?" in url else "?"
                 url = f"{url}{sep}secure=true"
                 
-            # Append authToken to the URL directly instead of passing via connect_args
-            if self.TURSO_AUTH_TOKEN and "authToken=" not in url:
-                clean_token = self.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
-                url = f"{url}&authToken={clean_token}"
-                
             return url
 
         # Default: Local SQLite Database

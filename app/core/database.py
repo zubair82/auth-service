@@ -41,7 +41,8 @@ class AsyncSessionWrapper:
 
 if "libsql" in DATABASE_URL:
     connect_args: dict[str, Any] = {}
-    # authToken is now appended directly to the URL in config.py
+    if settings.TURSO_AUTH_TOKEN:
+        connect_args["auth_token"] = settings.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
     
     sync_engine = create_engine(
         DATABASE_URL,
