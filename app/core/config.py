@@ -33,21 +33,23 @@ class Settings(BaseSettings):
     def RESOLVED_DATABASE_URL(self) -> str:
         if self.DATABASE_URL and not self.USE_TURSO_DB and self.DB_PROVIDER != "turso":
             url = self.DATABASE_URL.strip().strip("'").strip('"')
+            if url.endswith("/"):
+                url = url[:-1]
             if url.startswith("libsql://"):
                 url = url.replace("libsql://", "sqlite+libsql://")
                 if "secure=" not in url:
-                    sep = "&" if "?" in url else "?"
-                    url = f"{url}{sep}secure=true"
+                    url = f"{url}/?secure=true"
             return url
 
         if (self.DB_PROVIDER == "turso" or self.USE_TURSO_DB) and self.TURSO_DATABASE_URL:
-            raw_url = self.TURSO_DATABASE_URL.strip().strip("'").strip('"').rstrip('/')
+            raw_url = self.TURSO_DATABASE_URL.strip().strip("'").strip('"')
+            if raw_url.endswith("/"):
+                raw_url = raw_url[:-1]
             url = raw_url.replace("libsql://", "sqlite+libsql://")
             
             # Append secure=true
             if "secure=" not in url:
-                sep = "&" if "?" in url else "?"
-                url = f"{url}{sep}secure=true"
+                url = f"{url}/?secure=true"
                 
             return url
 
