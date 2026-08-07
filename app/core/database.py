@@ -42,7 +42,7 @@ class AsyncSessionWrapper:
 from sqlalchemy.dialects import registry
 
 try:
-    registry.register("sqlite.https", "sqlalchemy_libsql.dialect", "LibSQLDialect")
+    registry.register("sqlite.https", "sqlalchemy_libsql", "SQLiteDialect_libsql")
 except Exception:
     pass
 
