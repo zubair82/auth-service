@@ -39,7 +39,14 @@ class AsyncSessionWrapper:
             await asyncio.to_thread(self._session.rollback)
         await self.close()
 
-if "libsql" in DATABASE_URL:
+from sqlalchemy.dialects import registry
+
+try:
+    registry.register("sqlite.https", "sqlalchemy_libsql", "SQLiteDialect_libsql")
+except Exception:
+    pass
+
+if "libsql" in DATABASE_URL or "https" in DATABASE_URL:
     connect_args: dict[str, Any] = {}
     if settings.TURSO_AUTH_TOKEN:
         clean_token = settings.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
@@ -83,7 +90,7 @@ async def init_db():
     import app.models.user  # noqa: F401
     import app.models.session  # noqa: F401
 
-    if "libsql" in DATABASE_URL:
+    if "libsql" in DATABASE_URL or "https" in DATABASE_URL:
         # Diagnostic raw HTTP ping to Turso
         print("DEBUG: Sending raw HTTP diagnostic ping to Turso...")
         import urllib.request
