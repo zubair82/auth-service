@@ -41,11 +41,19 @@ class Settings(BaseSettings):
             return url
 
         if (self.DB_PROVIDER == "turso" or self.USE_TURSO_DB) and self.TURSO_DATABASE_URL:
-            raw_url = self.TURSO_DATABASE_URL.strip().strip("'").strip('"')
+            raw_url = self.TURSO_DATABASE_URL.strip().strip("'").strip('"').rstrip('/')
             url = raw_url.replace("libsql://", "sqlite+libsql://")
+            
+            # Append secure=true
             if "secure=" not in url:
                 sep = "&" if "?" in url else "?"
                 url = f"{url}{sep}secure=true"
+                
+            # Append authToken to the URL directly instead of passing via connect_args
+            if self.TURSO_AUTH_TOKEN and "authToken=" not in url:
+                clean_token = self.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
+                url = f"{url}&authToken={clean_token}"
+                
             return url
 
         # Default: Local SQLite Database

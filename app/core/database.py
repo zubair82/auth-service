@@ -41,8 +41,7 @@ class AsyncSessionWrapper:
 
 if "libsql" in DATABASE_URL:
     connect_args: dict[str, Any] = {}
-    if settings.TURSO_AUTH_TOKEN:
-        connect_args["auth_token"] = settings.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
+    # authToken is now appended directly to the URL in config.py
     
     sync_engine = create_engine(
         DATABASE_URL,
@@ -89,8 +88,8 @@ async def init_db():
                 break
             except Exception as e:
                 if "502" in str(e) and attempt < max_retries - 1:
-                    print(f"Database wake-up retry {attempt + 1}/{max_retries}. Waiting 3 seconds...")
-                    await asyncio.sleep(3)
+                    print(f"Database wake-up retry {attempt + 1}/{max_retries}. Waiting 5 seconds...")
+                    await asyncio.sleep(5)
                 else:
                     raise e
     else:
