@@ -34,7 +34,7 @@ class Settings(BaseSettings):
         if self.DATABASE_URL and not self.USE_TURSO_DB and self.DB_PROVIDER != "turso":
             url = self.DATABASE_URL.strip().strip("'").strip('"')
             if url.startswith("libsql://"):
-                url = url.replace("libsql://", "sqlite+https://")
+                url = url.replace("libsql://", "sqlite+libsql://")
                 if "secure=" not in url:
                     sep = "&" if "?" in url else "?"
                     url = f"{url}{sep}secure=true"
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
         if (self.DB_PROVIDER == "turso" or self.USE_TURSO_DB) and self.TURSO_DATABASE_URL:
             raw_url = self.TURSO_DATABASE_URL.strip().strip("'").strip('"').rstrip('/')
-            url = raw_url.replace("libsql://", "sqlite+https://")
+            url = raw_url.replace("libsql://", "sqlite+libsql://")
             
             # Append secure=true
             if "secure=" not in url:

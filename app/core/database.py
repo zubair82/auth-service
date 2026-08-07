@@ -39,14 +39,7 @@ class AsyncSessionWrapper:
             await asyncio.to_thread(self._session.rollback)
         await self.close()
 
-from sqlalchemy.dialects import registry
-
-try:
-    registry.register("sqlite.https", "sqlalchemy_libsql", "SQLiteDialect_libsql")
-except Exception:
-    pass
-
-if "libsql" in DATABASE_URL or "https" in DATABASE_URL:
+if "libsql" in DATABASE_URL:
     connect_args: dict[str, Any] = {}
     if settings.TURSO_AUTH_TOKEN:
         clean_token = settings.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
@@ -90,9 +83,47 @@ async def init_db():
     import app.models.user  # noqa: F401
     import app.models.session  # noqa: F401
 
-    if "libsql" in DATABASE_URL or "https" in DATABASE_URL:
+    if "libsql" in DATABASE_URL:
+        # Diagnostic raw HTTP ping to Turso
+        print("DEBUG: Sending raw HTTP diagnostic ping to Turso...")
+        import urllib.request
+        import json
+        try:
+            http_url = DATABASE_URL.replace("sqlite+libsql://", "https://").replace("libsql://", "https://")
+            if "?" in http_url:
+                http_url = http_url.split("?")[0]
+            if not http_url.endswith("/"):
+                http_url += "/"
+            http_url += "v2/pipeline"
+            
+            headers = {"Content-Type": "application/json"}
+            if "auth_token" in connect_args:
+                headers["Authorization"] = f"Bearer {connect_args['auth_token']}"
+                
+            req = urllib.request.Request(
+                http_url,
+                data=json.dumps({"requests": [{"type": "execute", "stmt": {"sql": "SELECT 1"}}]}).encode('utf-8'),
+                headers=headers,
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                print(f"DEBUG: Raw HTTP Ping Success! Status: {resp.status}")
+        except Exception as e:
+            print(f"DEBUG: Raw HTTP Ping Failed! Error: {e}")
+            try:
+                if hasattr(e, 'read'):
+                    print(f"DEBUG: Response body: {e.read().decode('utf-8')}")
+            except:
+                pass
+                
         # Retry mechanism for Turso cold starts (502 Bad Gateway)
         max_retries = 3
+        print(f"DEBUG: Connecting to {DATABASE_URL}")
+        if "auth_token" in connect_args:
+            token = connect_args["auth_token"]
+            print(f"DEBUG: Token length: {len(token)}, Token starts with: {token[:4]}..., ends with: ...{token[-4:]}")
+        else:
+            print("DEBUG: No auth_token found in connect_args")
         for attempt in range(max_retries):
             try:
                 await asyncio.to_thread(Base.metadata.create_all, bind=sync_engine)
