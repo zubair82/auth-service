@@ -31,27 +31,26 @@ class Settings(BaseSettings):
     
     @property
     def RESOLVED_DATABASE_URL(self) -> str:
-        if self.DATABASE_URL and not self.USE_TURSO_DB and self.DB_PROVIDER != "turso":
-            url = self.DATABASE_URL.strip().strip("'").strip('"')
-            if url.endswith("/"):
-                url = url[:-1]
+        def clean_url(url: str) -> str:
+            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
             if url.startswith("libsql://"):
-                url = url.replace("libsql://", "sqlite+https://")
-                if "secure=" not in url:
-                    url = f"{url}/?secure=true"
+                url = url.replace("libsql://", "sqlite+libsql://")
+            parsed = urlparse(url)
+            params = parse_qs(parsed.query)
+            for key in ["authToken", "auth_token", "jwt", "token"]:
+                params.pop(key, None)
+            params["secure"] = ["true"]
+            new_query = urlencode(params, doseq=True)
+            return urlunparse(parsed._replace(query=new_query))
+
+        if self.DATABASE_URL and not self.USE_TURSO_DB and self.DB_PROVIDER != "turso":
+            url = self.DATABASE_URL
+            if url.startswith("libsql://") or "sqlite+libsql://" in url:
+                return clean_url(url)
             return url
 
         if (self.DB_PROVIDER == "turso" or self.USE_TURSO_DB) and self.TURSO_DATABASE_URL:
-            raw_url = self.TURSO_DATABASE_URL.strip().strip("'").strip('"')
-            if raw_url.endswith("/"):
-                raw_url = raw_url[:-1]
-            url = raw_url.replace("libsql://", "sqlite+https://")
-            
-            # Append secure=true
-            if "secure=" not in url:
-                url = f"{url}/?secure=true"
-                
-            return url
+            return clean_url(self.TURSO_DATABASE_URL)
 
         # Default: Local SQLite Database
         if self.SQLITE_DB_PATH.startswith("sqlite+aiosqlite://"):
@@ -66,7 +65,11 @@ class Settings(BaseSettings):
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: Optional[str] = None
+
+    # URLs for OAuth Redirects
+    AUTH_BACKEND_URL: str = "http://localhost:5001"
+    STUDENT_FRONTEND_URL: str = "http://localhost:9000"
+    TEACHER_FRONTEND_URL: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

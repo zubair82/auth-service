@@ -31,9 +31,7 @@ async def google_login(
     if not settings.GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
-    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
-    host = request.headers.get("x-forwarded-host", request.url.netloc)
-    base_url = f"{scheme}://{host}"
+    base_url = f"{request.url.scheme}://{request.url.netloc}"
     redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # Encode role and exam_code into the state parameter
@@ -65,9 +63,7 @@ async def google_callback(
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
-    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
-    host = request.headers.get("x-forwarded-host", request.url.netloc)
-    base_url = f"{scheme}://{host}"
+    base_url = f"{request.url.scheme}://{request.url.netloc}"
     redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # 1. Exchange code for access token and id_token
@@ -174,8 +170,8 @@ async def google_callback(
     db.add(new_session)
     await db.commit()
     
-    # Redirect Teachers to 3000, Students and Admins to 9000
-    frontend_url = "http://localhost:3000" if assigned_role == UserRole.TEACHER else "http://localhost:9000"
+    # Redirect Teachers to teacher frontend, Students and Admins to student frontend
+    frontend_url = settings.TEACHER_FRONTEND_URL if assigned_role == UserRole.TEACHER else settings.STUDENT_FRONTEND_URL
     
     return RedirectResponse(url=f"{frontend_url}/?token={session_token}")
 
