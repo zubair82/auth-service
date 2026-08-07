@@ -39,7 +39,14 @@ class AsyncSessionWrapper:
             await asyncio.to_thread(self._session.rollback)
         await self.close()
 
-if "libsql" in DATABASE_URL:
+from sqlalchemy.dialects import registry
+
+try:
+    registry.register("sqlite.https", "sqlalchemy_libsql.dialect", "LibSQLDialect")
+except Exception:
+    pass
+
+if "libsql" in DATABASE_URL or "https" in DATABASE_URL:
     connect_args: dict[str, Any] = {}
     if settings.TURSO_AUTH_TOKEN:
         connect_args["auth_token"] = settings.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
@@ -80,7 +87,7 @@ async def init_db():
     import app.models.user  # noqa: F401
     import app.models.session  # noqa: F401
 
-    if "libsql" in DATABASE_URL:
+    if "libsql" in DATABASE_URL or "https" in DATABASE_URL:
         # Retry mechanism for Turso cold starts (502 Bad Gateway)
         max_retries = 3
         for attempt in range(max_retries):
