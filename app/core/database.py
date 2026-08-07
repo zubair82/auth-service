@@ -42,7 +42,7 @@ class AsyncSessionWrapper:
 if "libsql" in DATABASE_URL:
     connect_args: dict[str, Any] = {}
     if settings.TURSO_AUTH_TOKEN:
-        connect_args["auth_token"] = settings.TURSO_AUTH_TOKEN
+        connect_args["auth_token"] = settings.TURSO_AUTH_TOKEN.strip().strip("'").strip('"')
     
     sync_engine = create_engine(
         DATABASE_URL,
@@ -81,7 +81,18 @@ async def init_db():
     import app.models.session  # noqa: F401
 
     if "libsql" in DATABASE_URL:
-        await asyncio.to_thread(Base.metadata.create_all, bind=sync_engine)
+        # Retry mechanism for Turso cold starts (502 Bad Gateway)
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                await asyncio.to_thread(Base.metadata.create_all, bind=sync_engine)
+                break
+            except Exception as e:
+                if "502" in str(e) and attempt < max_retries - 1:
+                    print(f"Database wake-up retry {attempt + 1}/{max_retries}. Waiting 3 seconds...")
+                    await asyncio.sleep(3)
+                else:
+                    raise e
     else:
         async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
