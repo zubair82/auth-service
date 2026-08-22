@@ -50,6 +50,10 @@ class Settings(BaseSettings):
             url = self.DATABASE_URL
             if url.startswith("libsql://") or "sqlite+libsql://" in url:
                 return clean_url(url)
+            if url.startswith("/") or url.startswith("./") or url.startswith("../"):
+                return f"sqlite+aiosqlite:///{url}"
+            if not "://" in url:
+                return f"sqlite+aiosqlite:///{url}"
             return url
 
         if (self.DB_PROVIDER == "turso" or self.USE_TURSO_DB) and self.TURSO_DATABASE_URL:

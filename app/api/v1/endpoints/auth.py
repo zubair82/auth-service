@@ -170,8 +170,8 @@ async def google_callback(
     db.add(new_session)
     await db.commit()
     
-    # Redirect Teachers to teacher frontend, Students and Admins to student frontend
-    frontend_url = settings.TEACHER_FRONTEND_URL if assigned_role == UserRole.TEACHER else settings.STUDENT_FRONTEND_URL
+    # Redirect Teachers and Admins to teacher frontend, Students to student frontend
+    frontend_url = settings.TEACHER_FRONTEND_URL if assigned_role in [UserRole.TEACHER, UserRole.ADMIN] else settings.STUDENT_FRONTEND_URL
     
     return RedirectResponse(url=f"{frontend_url}/?token={session_token}")
 
