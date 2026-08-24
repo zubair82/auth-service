@@ -19,7 +19,9 @@ class Settings(BaseSettings):
         "http://localhost:5174",
         "https://exam-engine-fe.vercel.app",
         "https://www.examsimula.com",
-        "https://examsimula.com"
+        "https://examsimula.com",
+        "https://teacher.examsimula.com",
+        "https://admin.examsimula.com"
     ]
     
     # Database Provider Configuration: 'sqlite' (local file) or 'turso' (remote cloud)
