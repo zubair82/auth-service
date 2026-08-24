@@ -31,7 +31,8 @@ async def google_login(
     if not settings.GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
-    base_url = f"{request.url.scheme}://{request.url.netloc}"
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    base_url = f"{scheme}://{request.url.netloc}"
     redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # Encode role and exam_code into the state parameter
@@ -63,7 +64,8 @@ async def google_callback(
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
-    base_url = f"{request.url.scheme}://{request.url.netloc}"
+    scheme = request.headers.get("x-forwarded-proto", request.url.scheme)
+    base_url = f"{scheme}://{request.url.netloc}"
     redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # 1. Exchange code for access token and id_token
@@ -79,7 +81,8 @@ async def google_callback(
     async with httpx.AsyncClient() as client:
         response = await client.post(token_url, data=data)
         if response.status_code != 200:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to authenticate with Google")
+            print("Google OAuth Error:", response.text)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to authenticate with Google: " + response.text)
             
         token_data = response.json()
         access_token = token_data.get("access_token")
